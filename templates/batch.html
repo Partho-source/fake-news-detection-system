@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Batch check - Fake News Detection System{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <h3>Check many articles at once</h3>
+  <p class="muted">Upload a CSV file with a column named <code>text</code> (or <code>article</code> / <code>content</code>), and optionally <code>title</code>. Up to 500 rows, 5 MB.</p>
+  <input type="file" name="file" accept=".csv" required>
+  {% if bert_ready %}<select name="engine" style="width:auto;margin-left:8px"><option value="classic">Classic model</option><option value="bert">DistilBERT</option></select>{% endif %}
+  <div class="row"><button class="btn" type="submit">Check file</button></div>
+</form>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+{% if summary %}
+<section class="card">
+  <h3>Results</h3>
+  <div class="stats">
+    <div class="stat"><span class="muted">Rows</span><b>{{ summary.rows }}</b></div>
+    <div class="stat"><span class="muted">Checked</span><b>{{ summary.checked }}</b></div>
+    <div class="stat"><span class="muted">FAKE</span><b class="FAKE">{{ summary.fake }}</b></div>
+    <div class="stat"><span class="muted">REAL</span><b class="REAL">{{ summary.checked - summary.fake }}</b></div>
+    <div class="stat"><span class="muted">Skipped</span><b>{{ summary.skipped }}</b></div>
+  </div>
+  <div class="row"><a class="btn" href="{{ url_for('batch_download', bid=batch_id) }}">Download results (CSV)</a></div>
+  <table style="margin-top:12px">
+    <tr><th>Row</th><th>Article</th><th>Result</th><th>Confidence</th><th>Status</th></tr>
+    {% for i, t, label, conf, status in results %}
+    <tr><td>{{ i }}</td><td>{{ t }}</td><td class="{{ label }}"><b>{{ label }}</b></td><td>{% if conf %}{{ conf }}%{% endif %}</td><td class="muted">{{ status }}</td></tr>
+    {% endfor %}
+  </table>
+  {% if summary.rows > 100 %}<p class="muted">Showing the first 100 rows. The download has all of them.</p>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

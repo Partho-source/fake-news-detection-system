@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}History - Fake News Detection System{% endblock %}
+{% block content %}
+{% if thanks %}<p class="ok">Thank you for your feedback.</p>{% endif %}
+<section class="card">
+  <h3>Current model</h3>
+  {% if model %}
+  <div class="stats">
+    <div class="stat"><span class="muted">Version</span><b>{{ model.version }}</b></div>
+    <div class="stat"><span class="muted">Accuracy</span><b>{{ '%.2f'|format(model.accuracy) }}</b></div>
+    <div class="stat"><span class="muted">Precision</span><b>{{ '%.2f'|format(model.precision_val) }}</b></div>
+    <div class="stat"><span class="muted">Recall</span><b>{{ '%.2f'|format(model.recall_val) }}</b></div>
+    <div class="stat"><span class="muted">F1-score</span><b>{{ '%.2f'|format(model.f1_score) }}</b></div>
+  </div>
+  <p class="muted">{{ model.algorithm }} &middot; dataset: {{ model.dataset_name }} ({{ model.num_articles }} articles) &middot; trained {{ model.trained_at }} UTC</p>
+  {% endif %}
+  <p class="muted">User feedback received: {{ summary.total }} (correct: {{ summary.correct }}, incorrect: {{ summary.incorrect }})</p>
+</section>
+<section class="card">
+  <h3>{% if current_user.is_authenticated and current_user.is_admin %}All predictions{% elif current_user.is_authenticated %}Your predictions{% else %}Prediction history{% endif %}</h3>
+  {% if rows %}
+  <table>
+    <tr><th>#</th><th>Article</th><th>Result</th><th>Confidence</th><th>Model</th><th>Feedback</th><th>Time (UTC)</th></tr>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.prediction_id }}</td>
+      <td>{% if r.source_url %}<a href="{{ r.source_url }}" target="_blank" rel="noopener">{{ r.title }}</a>{% else %}{{ r.title }}&hellip;{% endif %}</td>
+      <td class="{{ r.label }}"><b>{{ r.label }}</b></td>
+      <td>{{ r.confidence }}%</td>
+      <td class="muted">{{ r.version }}</td>
+      <td>{% if r.is_correct is none %}<span class="muted">none</span>{% elif r.is_correct %}Correct{% else %}Incorrect{% endif %}</td>
+      <td class="muted">{{ r.predicted_at }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No articles have been checked yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Fake News Detection System{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body>
+<header><div class="wrap">
+  <h1><a href="{{ url_for('home') }}">Fake News Detection System</a></h1>
+  <nav>
+    <a href="{{ url_for('home') }}" class="{{ 'on' if request.endpoint == 'home' }}">Check</a>
+    <a href="{{ url_for('batch') }}" class="{{ 'on' if request.endpoint == 'batch' }}">Batch</a>
+    <a href="{{ url_for('history') }}" class="{{ 'on' if request.endpoint == 'history' }}">History &amp; model</a>
+    {% if current_user.is_authenticated %}
+      {% if current_user.is_admin %}<a href="{{ url_for('dashboard') }}" class="{{ 'on' if request.endpoint == 'dashboard' }}">Dashboard</a>{% endif %}
+      <span class="who">{{ current_user.name }}</span>
+      <form method="post" action="{{ url_for('logout') }}" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button>Log out</button></form>
+    {% else %}
+      <a href="{{ url_for('login_page') }}">Log in</a><a href="{{ url_for('register') }}">Sign up</a>
+    {% endif %}
+  </nav>
+</div></header>
+<main class="wrap">
+{% with msgs = get_flashed_messages() %}{% for m in msgs %}<p class="error">{{ m }}</p>{% endfor %}{% endwith %}
+{% block content %}{% endblock %}
+</main>
+<footer class="wrap">
+{% if model %}Model {{ model.version }} &middot; {{ model.algorithm }} &middot; trained on {{ model.num_articles }} articles &middot; accuracy {{ '%.2f'|format(model.accuracy) }}{% endif %}
+&middot; Results are statistical predictions, not proof that a story is true or false.
+</footer>
+</body>
+</html>

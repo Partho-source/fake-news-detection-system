@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block content %}
+<form method="post" class="card" id="check-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="mode" value="{{ mode }}">
+  <div class="tabs">
+    <a href="{{ url_for('home') }}" class="{{ 'on' if mode != 'url' }}">Paste text</a>
+    <a href="{{ url_for('home', mode='url') }}" class="{{ 'on' if mode == 'url' }}">Check a link</a>
+  </div>
+  {% if mode == 'url' %}
+    <label class="lbl" for="url">News article link</label>
+    <input type="url" id="url" name="url" value="{{ url }}" placeholder="https://www.example.com/news/story" required>
+    <p class="muted">The article text is downloaded from the page and checked. The website's reputation is shown too.</p>
+  {% else %}
+    <label class="lbl" for="article">News article</label>
+    <p class="muted">Paste the full text of an English news article (at least 10 words, at most 10,000 characters).</p>
+    <textarea id="article" name="article" placeholder="Paste news article here...">{{ text if mode != 'url' else '' }}</textarea>
+  {% endif %}
+  <div class="row">
+    <button class="btn" type="submit">Check News</button>
+    {% if mode != 'url' %}<button class="btn secondary" type="button" id="clear-btn">Clear</button>{% endif %}
+    {% if bert_ready %}
+    <select name="engine" style="width:auto">
+      <option value="classic" {{ 'selected' if engine == 'classic' }}>Classic model ({{ model.algorithm }})</option>
+      <option value="bert" {{ 'selected' if engine == 'bert' }}>DistilBERT</option>
+    </select>
+    {% endif %}
+    <span class="hint" id="counter"></span>
+  </div>
+</form>
+
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+{% if result %}
+<section class="card" id="result" data-pid="{{ prediction_id }}">
+  <h3 class="verdict {{ result.label }}">Result: {{ result.label }}</h3>
+  <div>Confidence: {{ result.confidence }}% <span class="muted">&middot; {{ engine }} ({{ model_version }})</span></div>
+  <div class="meter"><span class="{{ result.label }}" style="width: {{ result.confidence }}%"></span></div>
+  {% if title %}<p style="margin:0 0 6px"><b>{{ title }}</b></p>{% endif %}
+  {% if source %}<p style="margin:0 0 10px">Source: {{ source.domain }} <span class="badge {{ source.level }}">{{ source.label }}</span></p>{% endif %}
+  {% if truncated %}<p class="note">The page was long, so only the first 10,000 characters were checked.</p>{% endif %}
+  {% if result.top_terms %}
+  <div class="muted">Influential words:</div>
+  <div class="chips">{% for w in result.top_terms %}<span>{{ w }}</span>{% endfor %}</div>
+  {% endif %}
+  <form method="post" action="{{ url_for('feedback') }}" class="row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="prediction_id" value="{{ prediction_id }}">
+    <span>Was this prediction correct?</span>
+    <button class="btn secondary small" name="is_correct" value="1">Yes</button>
+    <button class="btn secondary small" name="is_correct" value="0">No</button>
+    <a class="btn small" href="{{ url_for('home', mode=mode) }}">Check another article</a>
+  </form>
+</section>
+
+{% if highlights %}
+<section class="card">
+  <h3>Which words pushed the decision</h3>
+  <p class="legend muted"><span style="background:rgba(180,35,24,.35)">towards FAKE</span><span style="background:rgba(6,118,71,.3)">towards REAL</span>Darker = stronger influence.</p>
+  <div class="highlight">{% for tok, s in highlights %}{% if s > 0.12 %}<span style="background: rgba(180,35,24,{{ '%.2f'|format(0.1 + 0.45 * s) }})" title="towards FAKE">{{ tok }}</span>{% elif s < -0.12 %}<span style="background: rgba(6,118,71,{{ '%.2f'|format(0.1 - 0.4 * s) }})" title="towards REAL">{{ tok }}</span>{% else %}{{ tok }}{% endif %}{% endfor %}</div>
+</section>
+{% endif %}
+
+<section class="card">
+  <h3>Writing-style signals</h3>
+  <div class="grid2">
+    <div><b class="FAKE">Warning signs</b>
+      {% if signals.warnings %}<ul class="signals bad">{% for s in signals.warnings %}<li>{{ s }}</li>{% endfor %}</ul>
+      {% else %}<p class="muted">None found.</p>{% endif %}</div>
+    <div><b class="REAL">Signs of careful reporting</b>
+      {% if signals.good %}<ul class="signals good">{% for s in signals.good %}<li>{{ s }}</li>{% endfor %}</ul>
+      {% else %}<p class="muted">None found.</p>{% endif %}</div>
+  </div>
+</section>
+
+<div class="grid2">
+<section class="card">
+  <h3>AI explanation (Grok)</h3>
+  {% if llm_enabled %}
+    <div id="ai-box" class="ai muted">Ask Grok to explain this result in plain English.</div>
+    <div class="row"><button class="btn small" type="button" id="ai-btn">Explain with Grok</button></div>
+  {% else %}
+    <p class="muted">Not set up. Add <code>XAI_API_KEY</code> to the <code>.env</code> file and restart the app.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h3>Published fact-checks</h3>
+  {% if factcheck_enabled %}
+    <div id="fc-box" class="muted">Searching fact-checking websites&hellip;</div>
+  {% else %}
+    <p class="muted">Not set up. Add <code>FACTCHECK_API_KEY</code> (Google Fact Check Tools API) to the <code>.env</code> file.</p>
+  {% endif %}
+</section>
+</div>
+{% endif %}
+
+<script>
+  const box = document.getElementById("article"), counter = document.getElementById("counter");
+  function count() {
+    if (!box) return;
+    const words = box.value.trim() ? box.value.trim().split(/\s+/).length : 0;
+    counter.textContent = words + " words, " + box.value.length + " / 10000 characters";
+  }
+  const clearBtn = document.getElementById("clear-btn");
+  if (clearBtn) clearBtn.addEventListener("click", () => {
+    box.value = ""; count(); box.focus();
+    document.querySelectorAll("#result, #result ~ section, #result ~ div, .error").forEach(e => e.remove());
+  });
+  if (box) { box.addEventListener("input", count); count(); }
+
+  const result = document.getElementById("result");
+  const pid = result ? result.dataset.pid : null;
+  const aiBtn = document.getElementById("ai-btn");
+  if (aiBtn) aiBtn.addEventListener("click", async () => {
+    const out = document.getElementById("ai-box");
+    aiBtn.disabled = true; out.textContent = "Asking Grok...";
+    try {
+      const r = await fetch("/api/explain/" + pid, {method: "POST", headers: {"Content-Type": "application/json"}, body: "{}"});
+      const d = await r.json();
+      out.classList.toggle("muted", !r.ok);
+      out.textContent = r.ok ? d.text + "\n\n(" + d.model + ")" : d.error;
+    } catch (e) { out.textContent = "Could not reach the server."; }
+    aiBtn.disabled = false;
+  });
+  const fc = document.getElementById("fc-box");
+  if (fc && pid) fetch("/api/factcheck/" + pid).then(r => r.json()).then(d => {
+    if (d.error) { fc.textContent = d.error; return; }
+    if (!d.results.length) { fc.textContent = "No published fact-checks found for: \"" + d.query + "\""; return; }
+    const ul = document.createElement("ul"); ul.className = "factcheck";
+    d.results.forEach(c => {
+      const li = document.createElement("li"), a = document.createElement("a");
+      a.href = c.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = c.publisher + ": " + c.rating;
+      li.append(a, document.createTextNode(" - \"" + c.claim + "\"" + (c.date ? " (" + c.date + ")" : "")));
+      ul.append(li);
+    });
+    fc.replaceChildren(ul); fc.classList.remove("muted");
+  }).catch(() => { fc.textContent = "Fact-check lookup failed."; });
+</script>
+{% endblock %}

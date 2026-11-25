@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.env
+.secret_key
+fnds.db
+model.pkl
+model.pkl.bak
+data/*.csv
+models/
+bert_runs/
+htmlcov/
+.coverage
+coverage.xml
+.pytest_cache/
+test-results/

@@ -1,0 +1,18 @@
+[run]
+source = .
+omit =
+    tests/*
+    bert_model.py
+    train_bert.py
+    get_dataset.py
+    complexity.py
+    coverage_run.py
+    trace_*.py
+    error_analysis.py
+
+[report]
+show_missing = True
+skip_covered = False
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:

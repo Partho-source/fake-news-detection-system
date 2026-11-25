@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Fake News Detection System{% endblock %}
+{% block content %}
+{% if message %}<p class="ok">{{ message }}</p>{% endif %}
+{% if default_pw %}<p class="note">The administrator still uses the default password. Change it below.</p>{% endif %}
+
+<section class="card">
+  <h3>Overview</h3>
+  <div class="stats">
+    <div class="stat"><span class="muted">Articles checked</span><b>{{ totals.predictions }}</b></div>
+    <div class="stat"><span class="muted">Labelled FAKE</span><b class="FAKE">{{ totals.fake }}</b></div>
+    <div class="stat"><span class="muted">Feedback</span><b>{{ summary.total }}</b></div>
+    <div class="stat"><span class="muted">Feedback says correct</span><b>{% if summary.total %}{{ (100 * summary.correct / summary.total)|round|int }}%{% else %}-{% endif %}</b></div>
+    <div class="stat"><span class="muted">Registered users</span><b>{{ totals.users }}</b></div>
+    <div class="stat"><span class="muted">Model versions</span><b>{{ totals.models }}</b></div>
+  </div>
+</section>
+
+<div class="grid2">
+  <section class="card"><h3>Checks per day (last 30 days)</h3>
+    {% if daily %}<canvas id="daily" height="200"></canvas>{% else %}<p class="muted">No checks yet.</p>{% endif %}</section>
+  <section class="card"><h3>Feedback accuracy by model version</h3>
+    {% if fb_models %}<canvas id="fb" height="200"></canvas>{% else %}<p class="muted">No feedback yet.</p>{% endif %}</section>
+</div>
+
+<section class="card">
+  <h3>Learn from feedback</h3>
+  <p class="muted">Adds every article that users gave feedback on (with the corrected label) to the training data, trains a new
+  version and compares it with the current model on the same held-out test articles. The new version is kept only if its accuracy
+  is at least as good. The previous model file is backed up as <code>model.pkl.bak</code>.</p>
+  <form method="post" action="{{ url_for('admin_retrain') }}" class="row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn" type="submit" onclick="this.disabled=true;this.textContent='Retraining...';this.form.submit()">Retrain from feedback</button>
+    <span class="muted">Feedback answers recorded: {{ summary.total }}</span>
+  </form>
+  {% if runs %}
+  <table style="margin-top:12px">
+    <tr><th>Run</th><th>Time (UTC)</th><th>Feedback used</th><th>Accuracy before</th><th>Accuracy after</th><th>Result</th></tr>
+    {% for r in runs %}<tr><td>{{ r.run_id }}</td><td class="muted">{{ r.run_at }}</td><td>{{ r.feedback_used }}</td>
+      <td>{{ '%.3f'|format(r.old_accuracy) }}</td><td>{{ '%.3f'|format(r.new_accuracy) }}</td>
+      <td>{% if r.accepted %}<span class="badge good">accepted</span>{% else %}<span class="badge warn">rejected</span>{% endif %}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h3>Model comparison ({{ model.version }}, cross-validation)</h3>
+  {% if comparison %}
+  <table>
+    <tr><th>Algorithm</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th><th>Fit time (s)</th></tr>
+    {% for c in comparison %}<tr{% if loop.first %} style="font-weight:600"{% endif %}><td>{{ c.algorithm }}{% if loop.first %} (chosen){% endif %}</td>
+      <td>{{ '%.3f'|format(c.accuracy) }} &plusmn; {{ '%.3f'|format(c.accuracy_std) }}</td><td>{{ '%.3f'|format(c.precision_val) }}</td>
+      <td>{{ '%.3f'|format(c.recall_val) }}</td><td>{{ '%.3f'|format(c.f1_score) }}</td><td>{{ c.fit_seconds }}</td></tr>{% endfor %}
+  </table>
+  {% else %}<p class="muted">No comparison for this version. Run <code>python train.py</code> on a dataset of at least 200 articles to compare the four algorithms.</p>{% endif %}
+</section>
+
+<section class="card">
+  <h3>Model versions</h3>
+  <table>
+    <tr><th>Version</th><th>Algorithm</th><th>Dataset</th><th>Accuracy</th><th>F1</th><th>Trained (UTC)</th></tr>
+    {% for m in models %}<tr><td>{{ m.version }}</td><td>{{ m.algorithm }}</td><td>{{ m.dataset_name }} ({{ m.num_articles }})</td>
+      <td>{{ '%.3f'|format(m.accuracy) }}</td><td>{{ '%.3f'|format(m.f1_score) }}</td><td class="muted">{{ m.trained_at }}</td></tr>{% endfor %}
+  </table>
+</section>
+
+<section class="card narrow" style="max-width:none">
+  <h3>Change administrator password</h3>
+  <form method="post" action="{{ url_for('admin_password') }}" class="row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="password" name="password" minlength="8" placeholder="New password (at least 8 characters)" style="max-width:320px" required>
+    <button class="btn" type="submit">Change</button>
+  </form>
+</section>
+
+<script src="{{ url_for('static', filename='chart.umd.min.js') }}"></script>
+<script>
+  const daily = {{ daily|tojson }}, fb = {{ fb_models|tojson }};
+  if (window.Chart && daily.length) new Chart(document.getElementById("daily"), {type: "bar",
+    data: {labels: daily.map(d => d.day), datasets: [
+      {label: "FAKE", data: daily.map(d => d.fake), backgroundColor: "#d9534f"},
+      {label: "REAL", data: daily.map(d => d.real), backgroundColor: "#2e9e6b"}]},
+    options: {scales: {x: {stacked: true}, y: {stacked: true, beginAtZero: true, ticks: {precision: 0}}}}});
+  if (window.Chart && fb.length) new Chart(document.getElementById("fb"), {type: "bar",
+    data: {labels: fb.map(m => m.version + " " + m.algorithm), datasets: [
+      {label: "% marked correct", data: fb.map(m => Math.round(100 * m.correct / m.total)), backgroundColor: "#1f3a5f"}]},
+    options: {scales: {y: {beginAtZero: true, max: 100}}, plugins: {tooltip: {callbacks: {
+      afterLabel: c => fb[c.dataIndex].correct + " of " + fb[c.dataIndex].total + " answers"}}}}});
+</script>
+{% endblock %}

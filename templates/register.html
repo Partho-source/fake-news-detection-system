@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Sign up - Fake News Detection System{% endblock %}
+{% block content %}
+<form method="post" class="card narrow">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <h3>Create an account</h3>
+  <p class="muted">With an account, your checks are kept in your own history.</p>
+  <label class="lbl" for="name">Name</label><input type="text" id="name" name="name" required autofocus>
+  <label class="lbl" for="email">Email</label><input type="email" id="email" name="email" required>
+  <label class="lbl" for="password">Password (at least 8 characters)</label><input type="password" id="password" name="password" minlength="8" required>
+  <div class="row"><button class="btn" type="submit">Sign up</button><span class="hint">Have an account? <a href="{{ url_for('login_page') }}">Log in</a></span></div>
+</form>
+{% endblock %}

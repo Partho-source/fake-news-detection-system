@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { width: 340px; margin: 0; font: 14px/1.45 system-ui, "Segoe UI", Arial, sans-serif; color: #1f2a37; }
+  header { background: #1f3a5f; color: #fff; padding: 10px 14px; font-weight: 600; }
+  main { padding: 12px 14px; }
+  textarea, input { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #cbd2d9; border-radius: 6px; font: inherit; }
+  textarea { height: 110px; resize: vertical; }
+  button { background: #1f3a5f; color: #fff; border: 0; border-radius: 6px; padding: 7px 14px; cursor: pointer; font: inherit; }
+  button.secondary { background: #fff; color: #1f3a5f; border: 1px solid #1f3a5f; }
+  .row { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+  #out { margin-top: 10px; } .FAKE { color: #b42318; } .REAL { color: #067647; }
+  .muted { color: #667085; font-size: 12px; } details { margin-top: 12px; }
+</style>
+</head>
+<body>
+<header>Fake News Detector</header>
+<main>
+  <textarea id="text" placeholder="Paste an article, or select text on a page and right-click."></textarea>
+  <div class="row"><button id="check">Check text</button><button id="page" class="secondary">Check this page</button></div>
+  <div id="out"></div>
+  <details>
+    <summary class="muted">Server settings</summary>
+    <div class="row"><input id="server" placeholder="http://127.0.0.1:5000"><button id="save" class="secondary">Save</button></div>
+    <div id="status" class="muted"></div>
+  </details>
+</main>
+<script src="common.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>

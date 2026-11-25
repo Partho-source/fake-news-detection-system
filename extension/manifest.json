@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Fake News Detector (FNDS)",
+  "version": "1.0.0",
+  "description": "Select text or open a news page and check it with your Fake News Detection System server.",
+  "permissions": ["contextMenus", "storage", "scripting", "activeTab"],
+  "host_permissions": ["http://127.0.0.1:5000/*", "http://localhost:5000/*"],
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_popup": "popup.html", "default_title": "Fake News Detector" },
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+}
