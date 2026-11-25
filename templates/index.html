@@ -80,7 +80,7 @@
     <div id="ai-box" class="ai muted">Ask Grok to explain this result in plain English.</div>
     <div class="row"><button class="btn small" type="button" id="ai-btn">Explain with Grok</button></div>
   {% else %}
-    <p class="muted">Not set up. Add <code>XAI_API_KEY</code> to the <code>.env</code> file and restart the app.</p>
+    <p class="muted">Not set up. Add <code>XAI_API_KEY</code> to the <code>.env</code> file (on Render: Environment settings) and restart the app.</p>
   {% endif %}
 </section>
 <section class="card">
@@ -88,7 +88,7 @@
   {% if factcheck_enabled %}
     <div id="fc-box" class="muted">Searching fact-checking websites&hellip;</div>
   {% else %}
-    <p class="muted">Not set up. Add <code>FACTCHECK_API_KEY</code> (Google Fact Check Tools API) to the <code>.env</code> file.</p>
+    <p class="muted">Not set up. Add <code>FACTCHECK_API_KEY</code> (Google Fact Check Tools API) to the <code>.env</code> file (on Render: Environment settings).</p>
   {% endif %}
 </section>
 </div>

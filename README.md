@@ -1,5 +1,7 @@
 # Fake News Detection System
 
+**Live demo:** https://fake-news-detector-fmug.onrender.com (free plan: the first visit after it has been idle takes about a minute to wake up)
+
 A Flask web app that classifies a news article as **FAKE** or **REAL**. It explains which words drove the decision, checks writing-style warning signs, can ask **Grok** for a plain-English explanation, and looks up published fact-checks. It also learns from user feedback.
 
 ## Features
@@ -104,7 +106,7 @@ docker build -t fake-news-detector .      # downloads the data and trains during
 docker run -p 8000:8000 -e XAI_API_KEY=... fake-news-detector
 ```
 
-To deploy on Render: push the project to GitHub, then on render.com choose **New, then Blueprint**, and pick the repository; `render.yaml` sets everything up. Enter your keys and admin password when asked. On the free plan the app sleeps when idle and the database resets on each deploy.
+To deploy on Render: push the project to GitHub, then on render.com choose **New, then Blueprint**, and pick the repository; `render.yaml` sets everything up. Enter your keys and admin password when asked. API keys can be added later under the service's **Environment** settings. The live demo is deployed from the public repository URL, so after pushing changes use **Manual Deploy, then Deploy latest commit**. On the free plan the app sleeps when idle and the database resets on each deploy.
 
 ## DistilBERT (optional, needs a GPU)
 
